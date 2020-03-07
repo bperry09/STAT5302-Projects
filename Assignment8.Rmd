@@ -1,0 +1,238 @@
+---
+title: "Stat 5302 - Assignment 8"
+author: "Bailey Perry"
+date: "November 9, 2017"
+output: pdf_document
+---
+
+```{r,message=FALSE, warning=FALSE}
+library(alr4)
+```
+
+## Number 8.1:
+This problem is based on number 6.1 in the textbook.
+```{r, message=FALSE, warning=FALSE}
+#Use the UN data to test NH: 6.6 to AH: 6.7 (formulas in book)
+#This is an overall F-test for a model with one factor (no addl regressors)
+data(UN11)
+fit0 <- lm(lifeExpF ~ 1, data=UN11)
+anova(fit0)
+fit1 <- lm(lifeExpF ~ group, data=UN11)
+anova(fit0, fit1)
+```
+Summary of results: In this case, the p-value for the F test is very close to 0, thus we believe that the variable group should not be removed from the mean function. This mean function has a separate mean for each level of group, but ignores log(ppgdp).
+
+## Number 8.2:
+This problem is based on number 6.2 in the textbook. With the UN data, explain why there is no F-test comparing models - (6.7) and (6.8).
+
+Answer: We cannot complete an F-test for comparing these models, because there is a constraint issue. The hypotheses are not nested, which we know is a requirement for the test.
+
+###Additional part
+In addition, demonstrate numerically that the square of the tstatistic for testing that the coefficient of log(ppgdp) equals 0 is equal to the F-statistic just computed.
+```{r}
+newfit <- lm(lifeExpF ~ 1, data=UN11)
+newfit1 <- lm(lifeExpF ~ log(ppgdp), data=UN11)
+anova(newfit, newfit1)
+#F statistic just computed is 291.09
+
+#summary(newfit1)
+tlog <- 17.06 #gotten from the summary
+Fstat <- tlog^2
+Fstat
+#291.04
+```
+There are some differences due to rounding, but overall we see that the F statistic is equal to the squared t statistic for testing that the estimated coefficient is equal to 0.
+
+## Number 8.3: 
+This problem is based on number 6.5.1 in the textbook.
+```{r}
+#UN11 data, start with the parallel regression model (6.9) - GIVEN
+#Test for equality of intercepts for the oecd and other levels of the 
+# factor group
+fit2 <- lm(lifeExpF ~ group + log(ppgdp) + group:log(ppgdp), UN11)
+summary(fit2)$coef
+```
+Since the oecd level is the baseline for the group variable, all we needed to do was compute a t-test for the other level of the group factor. From the output, we can see that the groupother is not significant. Thus from this, we cannot reject the null hypothesis that the intercepts are equal.
+
+## Number 8.4:
+This problem is based on number 6.9 in the textbook. Test only the third null hypothesis, NH: B1=B2=B5=0.
+```{r}
+#For the cakes data in Section 5.3.1;  we fit the full second-order model
+data(cakes)
+#View(cakes)
+m1 <- lm(Y ~ X1 + I(X1^2) + X2 + I(X2^2) + X1:X2, cakes) #full model
+m2 <- lm(Y ~ X2 + I(X2^2), cakes)
+anova(m1, m2)
+```
+In R, the anova function when applied to two fitted models computes the desired test. Thus for the hypothesis that the specified three beta values are 0, we see that the p-value is very significant. This suggests evidence against the null hypothesis.
+
+## Number 8.5:
+This problem is based on number 6.12 in the textbook.
+```{r}
+#IQf and IQb (twins separated at birth; foster v biological parents)
+#Three social classes (C); low (1), middle (2), or high (3)
+data(twins)
+#View(twins)
+plot(IQf~IQb, data=twins)
+olsnoc <- lm(IQf~IQb, data=twins)
+abline(olsnoc)
+abline(a=0, b=1, lty=2)
+
+par(mfrow=c(1,2))
+plot(IQf~C, data=twins)
+plot(IQb~C, data=twins)
+```
+From the plots, we can see that there is a relatively strong linear trend between IQf and IQb. The dashed line on the plot is the line y=x. Thus we see that there is crossover with the trendline and the y=x line. Additionally, we notice that the low income category has a higher median IQf than the other income groups. The spread between high and low income is relatively comparable, but low income has the highest maximum score.
+
+```{r}
+nullfit <- lm(IQf ~ 1, data=twins)
+twinfit <- lm(IQf ~ IQb + C, data=twins)
+anova(nullfit, twinfit)
+```
+In this test, we can see the difference in fitting IQf with no regressors, versus fitting the model with the factor C and the IQb data points. We see that the F-test is significant, which provides evidence to reject the null hypothesis. Thus, we do believe that an alternative model would be better.
+
+###Additional part
+In addition, include an F-test to compare the model E[IQf|IQb] = IQb to the alternative stated in the problem; that is, the model includes an intercept, IQb as a predictor, and C as a factor.
+```{r}
+nullfit1 <- lm(IQf ~ IQb - 1, data=twins) 
+#no intercept, just depending on IQb
+anova(nullfit1, twinfit)
+```
+
+## Number 8.6:
+This problem is based on number 7.7 in the textbook.
+```{r}
+#Experiments on sweet peas, looked at inheritance
+data(galtonpeas)
+```
+
+###7.7.1
+Draw the scatterplot of Progeny versus Parent.
+```{r}
+plot(Progeny~Parent, data=galtonpeas)
+```
+
+###7.7.2
+Assuming the sd are population values, compute the weighted regression of Progeny on Parent. Draw the fitted mean function on your scatterplot.
+```{r}
+#View(galtonpeas)
+plot(Progeny ~ Parent, galtonpeas) #new plots
+mweights <- lm(Progeny ~ Parent, data=galtonpeas, weights= 1/SD^2)
+abline(mweights, lwd=2, lty=3)
+#above is the weighted regression (WLS)
+munweight <- lm(Progeny ~ Parent, data=galtonpeas)
+abline(munweight)
+#above is unweighted (OLS)
+legend("topleft", c("WLS", "OLS"), lty=1:2 , lwd=2, cex=.8, inset=.02)
+#newly added lines and legend for the plot based on the regressions
+```
+We see from the above plot that the two lines are almost identical. To further see this, we can use the compare coefficients function that is within R.
+```{r}
+compareCoefs(mweights, munweight)
+```
+Here again we see that the estimated values and their standard errors are very, very similar. 
+
+###7.7.3
+What effects would you expect these experimental biases to have on 1. Estimation of the intercept and slope, and 2. estimates of error?
+
+Answer: Galton's idea was to use large seeds for a small plant, and small seeds for a large plant in order to fit closest to the overall average size. But this method should decrease the slope, and it could increase variances, making differences more difficult to detect. 
+
+## Additional Problems for 8.6:
+In subproblems 8.6.1-3, assume that the populations standard deviations for the parent classes are the same. So that the variance in the diameter of one progeny pea given the parent class is sigma-squared.
+
+###8.6.1
+Fit the unweighted regression of progeny (avg diameter of an unknown # of peas) on parent and summarize the results. What is the residual mean square estimating?
+```{r}
+summary(munweight) #this model was fitted above so we just call that again
+anova(munweight)
+```
+Summary of results: Both the intercept and the parent variable were found to be significant for this model. Thus interpretation for both is as follows. For the intercept, the value is approximately 12.703, which is the value for the mean diameter for offspring without a value for parent. Then we see that the mean diameter for offspring increases by 0.21 times the mean diameter of parent. The residual mean square is a measure of the quality of an estimator, and is also the denominator for the F-statistic. This value estimates the variance under the alternative hypothesis. In this case it is equal to 0.04175.
+
+###8.6.2
+Fit the weighted regression of progeny on parent assuming that each value for progeny is the average diameter of 100 peas. Compare to 8.6.1, and explain any differences (especially in residual mean square).
+```{r}
+mavgweight<- lm(Progeny ~ Parent, data=galtonpeas, weights= rep(100, 7))
+anova(mavgweight)
+```
+In this case, the residual mean square is now 4.175. We see that there is a factor change from part 8.6.1, meaning that this value is 100 times as large as the value in the part above. This makes sense because we have changed the weights to be based on 100 progeny peas. The F- statistic remains the same, and is still significant, as it was in 8.6.1.
+
+###8.6.3
+Fit the weighted regression of progeny on parent assuming that the values for progeny are the average diameters of 50,60,70,80,90,100, and 110 peas for parent classes 21,20,19,..., and 15.
+```{r}
+mchangeweight<- lm(Progeny ~ Parent, data=galtonpeas, weights=seq(50,110,10))
+anova(mchangeweight)
+```
+
+###8.6.4
+Again assume that the given standard deviations are population values. Describe the appropriate weights to use when the values for progeny are the average diameters given in 8.6.3.
+
+Answer: The appropriate weights to use would be w_i = (n_i/SD^2) because this time SD^2 stands for the sigma^2_i for each group which is not constant, and the groups have different sizes as noted in above 8.6.3.
+
+## Number 8.7:
+This problem is based on number 7.11 in the textbook.
+```{r}
+#Refer to problem 5.8, uses model given at (5.12)
+#Estimate the optimal (X1,X2) combination that maximizes the 
+# fitted response, and find the standard errors of those values
+#Differentiate and find maximizers as functions of Betas
+summary(m1) #to review the values
+#We will use model m1 from above which is the full model for cakes
+#Now we want to use the delta method in order to find the values
+# that will maximize
+x1.max <- "(b2*b5-2*b1*b4)/(4*b3*b4-b5^2)" #derived by hand - see below
+deltaMethod(m1, x1.max, parameterNames=c("b0", "b1", "b2", "b3", "b4", "b5"))
+#now repeat for x2
+x2.max <- "(b1*b5-2*b2*b3)/(4*b3*b4-b5^2)" #derived by hand
+deltaMethod(m1, x2.max, parameterNames=c("b0", "b1", "b2", "b3", "b4", "b5"))
+```
+By hand (attached page) we derived and found the values for the combination of X1,X2 that maximizes the fitted response. Thus we find that the estimated optimal combination is approximately (-1.312, -4.273).
+
+## Number 8.8:
+This problem is based on number 7.5 in the textbook.
+```{r}
+data(sniffer)
+#View(sniffer)
+
+#The score test for non constant variance
+#Reproduce the score tests given for the sniffer data in Section 7.2.1
+fit3 <- lm(Y ~ GasTemp + TankTemp + GasPres + TankPres, data=sniffer)
+#summary(fit3)
+estresid <- resid(fit3)
+RSS <- sum(estresid^2)
+
+#For fitted values
+n <- 125 #given from dataframe entries
+U <- (n*(estresid^2))/RSS
+Z <- fitted(fit3)
+fit4 <- lm(U~Z, data=sniffer)
+#summary(fit4)
+SStotal <- var(U)*(n-1)
+SSE <- sum((resid(fit4)^2))
+SSreg <- SStotal-SSE
+SSreg
+```
+```{r}
+#Now obtain the score test value
+S <- SSreg/2
+S
+pval <- 1-pchisq(S,1)
+pval
+```
+
+```{r}
+#For TankTemp
+n <- 125 #given from dataframe entries
+U <- (n*(estresid^2))/RSS
+Z <- sniffer$TankTemp
+fit5 <- lm(U~Z, data=sniffer)
+#summary(fit4)
+SStotal <- var(U)*(n-1)
+SSE <- sum((resid(fit5)^2))
+SSreg <- SStotal-SSE
+SSreg
+S <- SSreg/2
+S
+pval <- 1-pchisq(S,1)
+pval
+```
+This process can be repeated over and over with varying values for Z. As shown above, Z can be the fitted values from the model, or in the second example used we had Z set equal to the TankTemp variable. This data is summarized in Table 7.4 of the book, and we see that above and in the book that all of them are significant at the 0.05 level. Thus in every case, the null is rejected, and thus there is non-constant variance.

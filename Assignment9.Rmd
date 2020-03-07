@@ -1,0 +1,284 @@
+---
+title: "Stat 5302 - Assignment 9"
+author: "Bailey Perry"
+date: "November 30, 2017"
+output: pdf_document
+---
+
+```{r,message=FALSE, warning=FALSE}
+library(alr4)
+```
+
+## Number 9.1:
+This problem is based on number 8.5 in the textbook.
+```{r}
+data(BigMac2003)
+#View(BigMac2003)
+```
+
+###9.1.1
+```{r, message=FALSE, warning=FALSE}
+bigmac <- BigMac2003$BigMac
+bread <- BigMac2003$Bread
+teach <- BigMac2003$TeachGI
+fit <- lm(bigmac ~ bread + teach)
+
+#Now check the diagnostic plot
+par(mfrow = c(2,2))
+plot(fit)
+par(mfrow = c(1,1))
+#Does not look normal from these plots; which is lambda = 1
+
+#Apply the given power transformation from the problem
+bigmacnew <- bigmac^(-1/3)
+breadnew <- log(bread)
+teachnew <- teach^(1/3)
+fit1 <- lm(bigmacnew ~ breadnew + teachnew)
+
+#Now check the new diagnostic plot
+par(mfrow = c(2,2))
+plot(fit1)
+par(mfrow = c(1,1))
+```
+
+From the plots we can see that these tranformations have improved the normality of the data, although still not completely normal. The values used for the lambdas were the given in problem 9.1.1, thus we did not use Box Cox or another method to find those. The Normal QQ Plot falls relatively well on the line, but there could be improvement.The residuals v fitted plot looks to have a good random pattern.
+
+###9.1.2
+The units attached to BigMac is minutes of labor to purchase a Big Mac, and the units for TeachGI is a primary teacher's gross income in 1000's of US dollars. Both of these have a scale larger than a magnitude of 10, which is an indication (a priori) that they could be transformed to improve normality, based on the range rule on page 188.
+
+## Number 9.2:
+```{r}
+#Use the first fit from above with no transformations (aka lambda=1)
+#Then apply the Box Cox transformation
+pt <- summary(powerTransform(fit))
+
+#Get the estimated lambda
+(lambda <- pt$result[1,1])
+#Since the estimated lambda is very close to -1/2, we will use that
+
+#Apply the transformation to the response
+bigmacnew2 <- bigmac^(-1/2)
+#Fit the new response on the regressors
+fit2 <- lm(bigmacnew2 ~ bread + teach)
+
+#Check the diagnostic plot again
+par(mfrow = c(2,2))
+plot(fit2)
+par(mfrow = c(1,1))
+```
+This plot looks much better than the original data, as well as the estimated lambdas found in part 9.1.1. We see much stronger normality in the QQ plot which is representative of the Box Cox doing a good job of correcting the data (with lambda = -1/2).
+
+## Number 9.3:
+```{r}
+#Transfrom both of the regressors together
+a1 <- powerTransform(cbind(bread, teach) ~ 1)
+pt2 <- summary(a1)
+
+#Get the vector of estimated lambdas
+(estP <- pt2$result[,1])
+
+#Do the power transformation 
+breadnew2 <- (bread^estP[1] - 1) / estP[1]
+teachnew2 <- (teach^estP[2] - 1) / estP[2]
+
+#Fit the new model
+fit3 <- lm(bigmac ~ breadnew2 + teachnew2)
+
+#Check the diagnostic plot again
+par(mfrow = c(2,2))
+plot(fit3)
+par(mfrow = c(1,1))
+```
+From this output, the estimated normalizing transformations of Bread and TeachGI would be lambda1 = -1/3 and lambda2 = 1/3 based on the typical list of lambda values. In order to be closer to the estimated lambda from the power transformation, it may be better to use -1/4 or -1/5 for lambda1 for Bread.
+
+This is useful because having X be multivariate normal is much stronger than linearly related regressors, as noted on page 194 of the text.
+
+```{r}
+#Now plot actuals versus fitted
+plot(bigmac ~ fitted(fit3))
+```
+For the actual v fitted plot, we would want to see the data lining up in a diagonal line across the plot to suggest a good fit. Instead the data is skewed in the plot with an almost exponential shape (non-linear), which is less than ideal. Something to note is that the data for the fitted vaues was transformed with the power transforms seen above. 
+
+## Number 9.4:
+The above code included residual plots for all 3 of the fitted models, as well as Normal QQ plots. Generally, combining the analysis from both of these plots can allow for selecting a good model. From the plots above, we see that the Normal QQ Plot for the transformed regressors in 9.2 displays good normality, but the residual v fitted plot is slightly skewed and possibly implies another model may be better. On the other hand, the residual v fitted plot for the transformation in 9.1.1 (-1/3,log,1/3 respectively) seems to display good randomness, with no clear pattern. But, the Normal QQ Plot for the fit in 9.1.1 was not the best either. Thus we can see that different models could be selected depending on the specific bias of the statistician working with the data. 
+
+I personally would pick the model in 9.2 as the best model from these three. This is due to the favorable QQ Plot, and the Box Cox methodology being robust.
+
+In terms of cases that may have strong influence on the fit, you can see highlighted cases (identified with number tags) on the various plots which are possible outliers. These values may have strong influence on the plot, but this would need to be tested.
+
+## Number 9.5:
+Outlier testing for case 41.
+```{r}
+n <- 69
+outlierTest(fit1, cutoff = 1*n, n.max = n, order = TRUE)
+#From this we take the p-value and then multiply by n
+#This is because it is WITH guidance from the data
+pval <- 0.025665
+newp <- pval*n
+newp
+```
+Based on this output, the p-value tells us there is not evidence to reject the null which states that case 41 is not an outlier by our mechanism.
+
+Outlier testing for Moscow.
+```{r}
+#Moscow is the case number 44
+#From this we take the p-value as is (usual t-test)
+#This is because it is WITHOUT guidance from the data
+#44  2.000227212           0.049657           NA
+pval1 <- 0.049657
+pval1
+```
+Based on this output, the p-value tells us there is (very slightly) evidence to reject the null. This states that there is evidence to indicate something is weird with that point in the data.
+
+## Number 9.6:
+This is problem 9.16 in the textbook.
+```{r}
+data(florida)
+#View(florida)
+bucha <- florida$Buchanan
+bush <- florida$Bush
+gore <- florida$Gore
+```
+
+```{r}
+#Now make the required plot
+plot(bucha ~ bush)
+#Do the outlier test to see if Palm Beach County is an outlier 
+##(lone point at 3407 for Buchanan)
+mod <- lm(bucha ~ bush)
+n <- 67
+outlierTest(mod, cutoff = 1*n, n.max = n, order = TRUE)
+#The top case number that comes from the output is 50
+## which is the row number for Palm Beach County
+```
+```{r}
+#Since we look at the scatterplot and we have info on PBC
+#We are doing it WITH guidance, and need to multiple p by n
+p <- 8.6246e-34
+p*n
+#This shows to be the same as the Bonferroni p, as expected (check)
+```
+From the outlier test output, we see the Bonferonni p value is extremely small. Thus we see that there is evidence to reject the null hypothesis. Thus in this case we have evidence to suggest that Palm Beach County is an outlier. This means that the butterfy ballot may actually have an impact on the voters in the election.
+
+```{r}
+#Dade County may be an outlier, it is far to the right from the data
+#Dade County is number 13 in the row order
+        #rstudent unadjusted p-value Bonferonni p
+#13 -3.2809221986         1.6772e-03   1.1237e-01
+#Dade came up as second on the ordered list for outliers
+```
+From the outlier test output, we see the Bonferonni p value is relatively small. Thus we see that there is evidence to reject the null hypothesis. Therefore in this case we have evidence to suggest that Dade County is also an outlier.
+
+Next consider transforming the variables to better satisfy assumptions of SLR model.
+```{r}
+#Using an educated guess, we see that the large variation in scale
+## may imply using the log transformation (based on the log rule, p. 188)
+newbush <- log(bush)
+newbucha <- log(bucha)
+plot(newbucha ~ newbush)
+#From the plot, this is much more linear and we will try using this
+```
+
+```{r}
+#From this we create the new model for the transformed data
+mod2 <- lm(newbucha ~ newbush)
+#Test if Palm Beach is an outlier again
+n <- 67
+outlierTest(mod2, cutoff = 1*n, n.max = n, order = TRUE)
+```
+From the outlier test output, we see the Bonferonni p value is less than 0.05, and has a much smaller magnitude than the untransformed p-value. Thus we see that there is evidence to reject the null hypothesis again, even after transforming the data, and therefore in this case we have evidence to suggest that it is still an outlier.
+
+###In addition, find the maximum value of Cook's Distance and provide a brief interpretation of this statistic.
+```{r}
+#UNTransformed Data...
+
+#Get the value of cook's distance of each point
+cook <- cooks.distance(mod)
+#Plot the cook's distance
+plot(cook,ylab="Cooks distances")
+#Find the maximum value
+maxval <- max(cook)
+maxval
+```
+From the plot, we know the index is 50 which corresponds to Palm Beach County. This makes sense because we originally saw it as an outlier from the tests above, and this point has a large influence on the data. We also know that the analysis would see a substantial change if this value were removed as occurs with large Cook's distances.
+
+```{r}
+#Transformed Data...
+
+#Get the value of cook's distance of each point
+cook <- cooks.distance(mod2)
+#Plot the cook's distance
+plot(cook,ylab="Cooks distances")
+#Find the maximum value
+maxval <- max(cook)
+maxval
+```
+From the plot, we know the index again is 50 which corresponds to Palm Beach County. This makes sense because we originally saw it as an outlier from the tests above even after the log transformation. Although the distance is not as large as the one above (for the untransformed data), this makes sense for transformed data, and we still see that it has a relatively large Cook's distance compared to the other points in this plot.
+
+## Number 9.7:
+This is problem 9.18 in the textbook.
+```{r}
+data(cloud)
+#View(cloud)
+```
+
+The goal of the analysis is to determine if there is evidence that cloud seeding is effective in increasing rainfall.
+```{r}
+#Begin with appropriate graphs
+pairs(~A+D+S+C+P+E+Rain,data=cloud,main="Seeded Cloud Scatterplot Matrix")
+```
+From the above plots, we see non-constant variance, potential outliers, and overall a lot of non-linearity.
+
+```{r}
+model <- lm(Rain ~ A+D+S+C+P+E, cloud)
+
+#Draw the diagnostic plot.
+par(mfrow = c(2,2))
+plot(model)
+par(mfrow = c(1,1))
+#Clear skew in the normal plot, with highlighted cases in QQ and residvfit
+
+#Multivariate Box Cox Method
+#Transfrom the response and regressors together
+#do not transform inidcator variables: A, E
+#We will leave D, since it has a 0 and cannot be in the following code
+a1 <- powerTransform(cbind(Rain, S, P, C) ~ 1, cloud)
+pt2 <- summary(a1)
+pt2
+
+#get the vector of estimated lambdas
+(estP <- pt2$result[,1])
+estP
+#Based on the summary values and estP, we will round to "good" lambdas
+
+#do the power transformation 
+cloud$Rain_new <- (cloud$Rain^0.5)
+cloud$S_new <- (cloud$S^1) #unchanged
+cloud$P_new <- log(cloud$P)
+cloud$C_new <- (cloud$C^-0.5)
+#View(cloud)
+
+#fit the new model
+newmodel <- lm(Rain_new ~ S_new + P_new + C_new + D + A + E, cloud)
+#Draw the diagnostic plot.
+par(mfrow = c(2,2))
+plot(newmodel)
+par(mfrow = c(1,1))
+```
+A and E are not transformed because they are indicator variables, and D could potentially be transformed using the log, but since it contained a zero it raised errors with infite values. Thus, we transformed the necessary variables and included the rest in the new fitted model. When checking the diagnostic plot, the model seems to have improved and the QQ plot looks more normal. The residuals v fitted seems to have a better random pattern, and we thus move forward with the model. The model has Rain transformed with lambda=0.5, P transformed with lambda=0, and C transformed with lambda=-0.5.
+
+Now we will test for outliers and do Cook's distance.
+```{r}
+#Test if Palm Beach is an outlier again
+n <- 24
+outlierTest(newmodel, cutoff = 1*n, n.max = n, order = TRUE)
+
+#Get the value of cook's distance of each point
+cook <- cooks.distance(newmodel)
+#Plot the cook's distance
+plot(cook,ylab="Cooks distances")
+#Find the maximum value
+maxval <- max(cook)
+maxval
+```
+From the output above, we see that the cases 7 and 15 arise as possible outliers to consider. When looking at the Cook's distance values we further see that 7 has the maximum value at approximately 0.54, and thus being influential and a possible outlier means that the scientists may want to further investigate this as a point of importance in the data. 

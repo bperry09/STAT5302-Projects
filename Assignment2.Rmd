@@ -1,0 +1,126 @@
+---
+title: "Stat 5302 - Assignment 2"
+author: "Bailey Perry"
+date: "September 21, 2017"
+output: pdf_document
+---
+## Non-Text Problems:
+```{r, message=FALSE, warning=FALSE}
+library(alr4)
+```
+
+We know from lecture that we gain information at a rate of approximately sqrt(n). Thus we utilize that for the following problem where we want the length of the confidence interval to be 1/4 the size.
+
+##Number 2.1: 
+Random sample, n=100
+From this and class notes we know that 1/sqrt(n)(f)=1/sqrt(m)
+Therefore 1/(f^2)(n)=m
+So in order to decrease the length to 1 from 4, we do the following:
+1/((1/4)^2)(n)=m
+Therefore: 16n = m, and we know that the sample size needs to increase to 1600.
+
+From the analysis above, it is clear that the sample size must increase by 16x, thus the new n must be 1600.
+
+##Number 2.2:
+a) What is the distribution?
+Chi-squared distribution - this occurs when it is a sum of independent standard normal variables, which is what the subtraction of mu and division of the standard deviation does.
+
+b) Suggest a test statistic and procedure, then discuss rationalle.
+I would utilize the chi squared test statistic because with mu=0 and sigma squared=1, the given formula turns directly in to the chi-squared statistic. Then we know, if mu or sigma squared changes, the distribution shifts and we likely could visualize these changes in the form of a histogram or other graph. For example, we could plot it (assuming mean=0, and var=1) and if the plot is wider, then it may not be true. Or if we plot it, and the plot is not centered around 0, then the mean may be different as well. 
+
+The idea here is that we want to focus on what hypothesis testing is, and for this problem we want to see if it is valid to assume that a specific mean or variance is valid for the given dataset. Some online sources refer to likelihood ratio testing for considering both mean and variance simultaneously in a hypothesis test, but the rationalle for this test is beyond the scope of what 5302 has covered to date.
+
+##Number 2.3:
+Investigate the data in order to understand more about the background of it.
+```{r}
+data(UN11)
+#?UN11
+```
+### Is it reasonable to treat the data from 1.1 in the text as a random sample? What is your reason for this conclusion?
+  No, I do not think it can be treated as a random sample. First, the data is pulled from countries that fall on a list given by the United Nations, so they were specifically identified to be sampled. Additionally, the data may not be all independent since some data was from countries, and some data was from cities. On top of this, only 210 places were sampled, but their were 237 observations of 32 variables which raises the issue of some of the areas being sampled more than once. Overall, it seems that the probability of being selected is not equally likely across the globe, which appears to be the population of the study, which directly contradicts the methodology of random sampling. 
+
+### If not, what is the point of studying the data?
+  The data can still be used to run analyses, regression, and more although it is not a random sample. We cannot make all of the assumptions that we would be able to make with randomness involved, but the data can still be very useful. For instance, you can transform the data, run multiple regression models, investigate various factors, run outlier tests, and more.
+
+##Number 2.4: Problem 1.1 in the text
+a) Since the problem directly states that we are investigating the dependence of fertility and ppgdp, we know that the predictor is a function of ppgdp and the response is a function of fertility.
+
+```{r}
+#b) 
+plot(fertility~ppgdp, data=UN11)
+# From the plot we see that straight line mean function does not seem like a 
+# plausible summary option for this graph. It does not appear to be linear,
+# and the variance does not seem constant either.
+
+#c)
+plot(log(fertility)~log(ppgdp), data=UN11)
+# Based on this plot, the straight line mean function would be much more
+# appropriate due to the negative linear trend that we can observe here.
+# There may be some outliers and issues with variance, but it isn't fully clear.
+```
+
+```{r}
+data(Heights)
+# View(Heights)
+```
+
+##Number 2.5: Assume that it comes from a random sample from a normal distribution with mean = mu and variance = sigma squared.
+
+###a) Derive the variance of the estimator of sigma squared
+This sample from a normal distribution is known to be X ~ N(mu, sigma squared). From this, we know Z = (X-mu/sigma squared) ~ N(0,1), and then Z^2 ~ chi squared with df=1. We know from chi squared rules that the mean=n and the variance=2n. We also know that the sigma squared estimator = SXX/n-1, which can be manipulated to: SXX/(sigma squared) ~ chi squared with df=n-1. Thus we can apply chi squared rules to the estimator of sigma squared, so we know that its variance=2(n-1) or 2*df. 
+
+###b) Give the standard error of the sigma squared estimate.
+The standard error of the estimate (of variance) is known by definition to be the square root of the variance of the estimator:
+        (sigma squared hat) standard error = (sigma^2)*sqrt(2/(n-1)), where we know we also plug in sigma hat squard for (sigma^2).
+
+##Number 2.6: Assume that (mheight, dheight) in the data discussed is a random sample from a bivariate normal population.
+
+```{r}
+#a) Estimate the correlation coefficient and describe what it is estimating
+msd <- sd(Heights$mheight)
+dsd <- sd(Heights$dheight)
+mdcov <- cov(Heights$mheight, Heights$dheight)
+corr <- mdcov/(dsd*msd)
+#Alternatively we could have applied the following function:
+cor(Heights$mheight, Heights$dheight)
+#We see that it matches the value we saved as corr
+```
+This value is estimating the normalized measurement of how the two variables are linearly related. The value of 0.49 indicates a weak positive relation.
+
+```{r}
+#b) Estimate the conditional mean and variance - (m|d)
+#From our notes in class we know that E[Y|x] = mean(Y) + (Cov(X,Y)/(variance 
+# of x))*(X-mean(X)) AND we also know the values for these from above/can 
+# manipulate it to a linear function
+mommu <- mean(Heights$mheight)
+coeffm <- corr*(msd/dsd)
+daumu <- mean(Heights$dheight)
+consm <- -coeffm*daumu
+beta0m <- consm+mommu
+#Thus we know the function for E[Y|X] = beta0m + coeffm(X)
+#where coeffm = beta1 for mother's height
+
+#Additionally we know the variance = (1-rho^2)*(variance of y)
+varm <- (1-(corr^2))*var(Heights$mheight)
+varm
+
+#c) Estimate the conditional mean and variance - (d|m) & compare to b
+#From our notes in class we know that E[Y|x] = mean(Y) + (Cov(X,Y)/(variance 
+#of x))*(X-mean(X)) and we can algebraically manipulate it to a linear function
+coeffd <- corr*(dsd/msd)
+#we can use means from above, just different order
+consd <- -coeffd*mommu
+beta0d <- consd+daumu
+#Thus we know the function for E[X|Y] = beta0d + coeffd(Y)
+
+#Additionally we know the variance = (1-rho^2)*(variance of y)
+vard <- (1-(corr^2))*var(Heights$dheight)
+vard
+```
+For this problem, parts b and c are related in that the conditional statement is swapping X and Y (mheight and dheight). This actually makes two completely distinct regressions that are not connected in a standard algebraic manner. Their coefficients change, and thus two different lines are plotted on the (x,y) graph due to the differences in their respective intercept and slope. 
+
+For this problem:
+E[mheight|dheight] = 34.116 + 0.4445(X) and E[dheight|mehight] = 29.917 + 0.5417(Y) and we can clearly see from these functions that the lines are distinct.
+
+###d) A mother's height is one standard deviation above avg height for mothers. Her daughter's height is estimated to be _____standard deviations above the avg height for daughters.
+  From our class notes we know that the blank should be filled in with rho (correlation coefficient). For this case, rho = 0.4907. This is true because the correlation coefficient serves as a scale for how many standard deviations dheight is from the mean (given mheight).

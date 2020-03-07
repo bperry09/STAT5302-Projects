@@ -1,0 +1,230 @@
+---
+title: "Stat 5302 - Assignment 10"
+author: "Bailey Perry"
+date: "December 2, 2017"
+output: pdf_document
+---
+
+```{r,message=FALSE, warning=FALSE}
+library(alr4)
+```
+
+## Number 10.1:
+Model development for waste produced by a business, as discussed in class. Use all necessary techniques to produce a good predictive model. Data is on the class website titled "Waste.txt".
+```{r}
+df <- read.table("http://users.stat.umn.edu/~rdcook/5302F17/data/Waste.txt", header = FALSE)
+colnames(df) <- c("FTE", "ImprV", "LandV", "Size", "Use", "Wst")
+#View(df)
+```
+
+```{r}
+#Step 1: Plot the Data
+pairs(~FTE+ImprV+LandV+Size+Use+Wst,data=df, main="Waste Data Scatterplot Matrix")
+#Some zoomed in examples of potential issues in the data
+plot(Wst~LandV, data=df)
+plot(Wst~FTE, data=df)
+#checking to see if variance is fanning out
+```
+These plots highlight that there may be instances of non-constant variance or other influential points, and thus we may need to consider transformation of variables to have cleaner data to work with.
+
+```{r}
+#First fit the model without transforming any variables to see what it does
+fit1 <- lm(Wst~FTE+ImprV+LandV+Size+Use, data=df)
+summary(fit1)
+#Model diagnostics
+plot(fit1)
+```
+The Normal QQ Plot shows definite heavy-tails particularly on the positive side of the x-axis. Residuals v Fitted plot also is a warning sign because the majority of the data is clustered in one area, but there are still points around the plot, when the ideal plot would display a constant random pattern. All of the plots are clearly highlighting points that are influential or potential outliers, which will definitely need to be addressed. Now that we have considered the original model and verified that it does not seem to be the best method, we will consider transformations to help improve the model diagnostics.
+
+```{r}
+#Transfrom both of the regressors together
+a1 <- powerTransform(cbind(df$FTE, df$ImprV, df$LandV, df$Size, df$Wst) ~ 1)
+#Do not transform Use because its an indicator variable
+pt2 <- summary(a1)
+pt2
+#Based on the summary output, all of the regressors can be log-transformed
+#Due to this being a well-known transformation, that is what we will use
+
+#Do the power transformation 
+FTE2 <- log(df$FTE)
+ImprV2 <- log(df$ImprV)
+LandV2 <- log(df$LandV)
+Size2 <- log(df$Size)
+#It was decided that the Wst variable confidence interval 
+## was close enough to the log transformation that it will be used
+Wst2 <- log(df$Wst)
+Use <- df$Use
+
+#Fit the new model
+fit2 <- lm(Wst2 ~ FTE2+ImprV2+LandV2+Size2+Use)
+summary(fit2)
+#Checking the significance of the different regressors
+
+#Check the diagnostic plot again
+par(mfrow = c(2,2))
+plot(fit2)
+par(mfrow = c(1,1))
+```
+Post transformation, the diagnostic plots see clear improvement. The Normal QQ Plot follows a much better linear pattern, with only a few deviations which are still the same points as the originally highlighted possibly influential points. The key improvements are also seen in the random spread of the Residual v Fitted plot, and the Residuals v Leverage plot. Overall, the transformations seem to have improved the dataset and the model fit is much better than the initial attempt.
+
+The next thing to consider is the statistical significance of the regressors. LandV2 and Size2 were seen to be non-significant in the model, and ImprV2 was very close to the 0.05 level. Thus, the next step will implement backward elimination to see which variables may be most important to the model. Something to note is that the data was not split into testing and training data for this project, and this was done on purpose. Since the data was obtained in an easily replicable process, it was believed that the best procedure would be to fit the model on all of the data and then recommend that the fitted model be validated by sending out approximately 35 more letters to businesses to then test the data on. The value 35 was picked because that would be around 20% of the overall data obtained (147+35=182 total). Thus the splitting step was skipped with an assumption that repeating the experiment could occur.
+
+```{r}
+#fit2 will be the full model
+full <- fit2
+null <- lm(Wst2 ~ 1)
+s2 <- step(full, scope=list(lower=null, upper=full), direction="backward", k=2)
+summary(s2)
+```
+From this output, we see that backward elimination confirms that only using the previously significant terms in the model is the best approach. All of the regressors are statistically significant. Thus we will fit this model and check the diagnostics.
+
+```{r}
+fit3 <- lm(Wst2 ~ FTE2+ImprV2+Use)
+par(mfrow=c(2,2))
+plot(fit3)
+summary(fit3)
+```
+We see slight improvements from the model that contained all 5 regressors, but it is important to note that more regressors increases the VIF, and that is why it is better to follow the model given in backward elimination (also because it did show improvement). Since we have seen model improvement and verified the model to be the choice that will be used moving forward, it is now essential to consider influential points in the data.
+
+```{r}
+n <- 147
+outlierTest(fit3, cutoff = 1*n, n.max = n, order = TRUE)
+```
+We see that the top value for the outlier test is highlighted as case 18. This value is labeled in both the Normal QQ and the Residuals v Fitted plot as well. We see that the Bonferroni p-value is approximately 0.589 which is not significant, and therefore the null is not rejected. We also note that 18 was not highlighted as an influential point in the plot of Cook's distance. Thus from this test we see that there are no clear outliers in the data.
+
+```{r}
+#Get the value of cook's distance of each point
+cook <- cooks.distance(fit3)
+#Plot the cook's distance
+plot(cook,ylab="Cooks distances")
+#Find the maximum value
+maxval <- max(cook)
+maxval #Case 77
+```
+Case 77 has the largest Cook's distance as displayed in the plot, and thus it may be exerting significant influence on the data. Additionally, this case is listed 5th on the list for the outlier test, but would not be considered an outlier. It may be important to check the collection of the data for this point, or review the responses from this business.
+
+Now a plot of the fitted v actual will help confirm the final model.
+```{r}
+plot(fitted(fit3) ~ Wst2)
+```
+There is clearly some variation along the line, but the plot shows that the data essentially follows a monotonically increasing linear trend as expected. Additionally, the county would be splitting this into the tax categories, and you could see that there would be areas that this could be done in the graph above.
+
+To conclude, the final model was saved as fit3 in R, but is as follows (approx.):
+E[Wst2|FTE2, ImprV2, Use] = -4.261 + 0.692(FTE2) + 0.297(ImprV2) + 0.225(Use). This means that for everything else held constant: for a 1 unit increase in FTE2, Wst2 increases by 0.692 units, for a 1 unit increase in ImprV2, Wst2 increases by 0.297 units, and for a 1 unit increase in Use, Wst2 increases by 0.225 units. Overall, this model showed strong diagnostic plots, regressor significance, and no clear outliers. Therefore all signs point to this model being not only functional, but also beneficial for the intended use.
+
+## Number 10.2:
+This problem is number 10.2.1 in the textbook.
+```{r}
+data(Highway)
+#View(Highway)
+for (i in 1:39){
+  if(Highway$sigs[i] > 0){
+    Highway$sigs[i] <- log(Highway$sigs[i])
+  }
+  else{
+    Highway$sigs[i] <- Highway$sigs[i]
+  }
+}
+Highway$trks <- log(Highway$trks)
+Highway$adt <- log(Highway$adt)
+Highway$len <- log(Highway$len)
+null <- lm(log(rate) ~ 1, data=Highway)
+full <- lm(log(rate) ~ ., data=Highway)
+s1 <- step(null, scope=list(lower=null, upper=full), direction="forward", k=2)
+summary(s1)
+```
+This model directly matches the one given in the textbook using Forward Selection methodology. Thus the subset is verified.
+
+Now we do backward elimination on the data.
+```{r}
+s2 <- step(full, scope=list(lower=null, upper=full), direction="backward", k=2)
+summary(s2)
+```
+This again confirms the backward elimination method, as required for the problem. We see that it matches to the information displayed in the textbook. Thus the subset is verified.
+
+## Number 10.3:
+This problem is number 11.2 in the textbook.
+
+###11.2.1
+```{r}
+data(lakemary)
+plot(Length ~ Age, data=lakemary)
+```
+
+###11.2.2
+```{r}
+#get the biggest value of length
+(ma <- max(lakemary$Length))
+#assign this value plus 10 to L-infinity
+LI <- ma + 10
+#L/LI = 1 - exp(-K(t - t0))
+#1 - L/LI =  exp(-K(t - t0))
+#log(1 - L/LI) = -K(t - t0)
+#log(1 - L/LI) = Kt0 - Kt 
+#use linear regression to estimate K and t0
+ini <- lm(log(1 - Length/LI) ~ Age, lakemary)
+#get the initial value for K
+(K <- -as.numeric(ini$coefficients[2]))
+#get the initial value for t0
+(t0 <- as.numeric(ini$coefficients[1])/K)
+
+#Now draw the fitted model on the scatterplot
+Age <- lakemary$Age
+plot(Length~Age, lakemary)
+fitmod <- LI*(1-exp(-K*(Age-t0)))
+#View(fitmod)
+#Hardcoded the values for each age point from fitmod
+lines(c(1,2,3,4,5,6), c(63.8, 106, 134.99, 154.83, 168.42,175), col="red")
+```
+
+###11.2.3
+Skip the bootstrap part.
+```{r}
+#LI is our point estimate
+#Now find variance of Length
+varL <- var(lakemary$Length)
+seL <- sqrt(varL)
+upper <- LI + 1.96*seL #by the CLT - large sample size
+lower <- LI - 1.96*seL
+lower; upper
+```
+Thus the 95% confidence interval for Linfinity is approximately [150.69, 245.31].
+
+## Number 10.4:
+This problem is number 11.4 in the textbook.
+```{r}
+data(swan96)
+#View(swan96)
+```
+
+###11.4.1
+```{r}
+#Fit the quadratic polynomial
+Day2 <- swan96$Day^2
+mod <- lm(LCPUE ~ Day + Day2, data=swan96)
+summary(mod)
+
+#Plot the scatterplot & add the curve
+plot(LCPUE ~ Day, data=swan96)
+lines(swan96$Day, predict(mod), col="blue") 
+```
+
+###11.4.2
+```{r}
+#Use the model from above, mod
+day.max <- "(-b1/(2*b2))" #derived by hand - easy calculation
+deltaMethod(mod, day.max, parameterNames=c("b0", "b1", "b2"))
+```
+The estimate that maximizes the quadratic polynomial is given in the output above, Day = 183.11. Then the variance for this value is the square of the standard error output, which is approximately variance = 35.539.
+
+###11.4.3
+Another parameterization is given in the book with thetas. Use nonlinear least squares to fit this mean function. Compare results.
+```{r}
+#Fit the nonlinear regression of the swan96 data
+n1 <- nls(LCPUE ~ th1 - (2*th2*th3*Day) + (th3*Day2), data=swan96,
+          start=list(th1=9.212e-02, th2=(-4.661e-02/(2* -1.273e-04)),
+                     th3=-1.273e-04)) 
+#plug in estimates to given theta functions for start values
+summary(n1)
+```
+The results match the first two parts of our analysis. We saw that Theta2 is the value of the predictor that gives the maximum value of the response, and it was again equal to 183 as seen in the delta method section.

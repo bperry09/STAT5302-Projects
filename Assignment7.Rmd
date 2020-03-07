@@ -1,0 +1,145 @@
+---
+title: "Stat 5302 - Assignment 7"
+author: "Bailey Perry"
+date: "November 2, 2017"
+output: pdf_document
+---
+
+## Number 7.2:
+This problem is based on number 5.8 in the textbook.
+```{r, message=FALSE, warning=FALSE}
+library(alr4)
+data(cakes)
+#View(cakes)
+```
+
+###7.2.1
+Fit 5.12 and verify the significance levels.
+```{r}
+X1sq <- cakes$X1^2
+X2sq <- cakes$X2^2
+fit <- lm(Y ~ X1 + X2 + X1sq + X2sq + (X1*X2), data=cakes)
+summary(fit)
+```
+From the above, we see that the output matches the output written in the textbook, and also follows the model for (5.12). We also can see that the quadratic terms and interaction are all significant at the alpha = 0.005 level.
+
+###7.2.2
+The question asks us to look at the effect of block on the model. Thus we add it as a regressor to the model from above.
+```{r, message=FALSE, warning=FALSE}
+fit1 <- lm(Y ~ X1 + X2 + X1sq + X2sq + (X1*X2) + block, data=cakes)
+summary(fit1)
+```
+We see from the fitted model that block is not significant. All of the other terms remain significant, but not at the same level as the original model. Each of the terms is now less significant than before, but still significant at the alpha = 0.001 level. From this, we know that the coefficient for block1 means that the palatability score (Y) increased for cakes in block 1, but we note that it is not significant, thus we may disregard it for the model.
+
+## Number 7.3:
+This problem is based on number 5.14 in the textbook.
+```{r}
+data(BGSall)
+#View(BGSall)
+```
+
+###7.3.1
+```{r}
+plot(HT18~HT9, pch=Sex, data=BGSall)
+#1 is female and 0 is male
+#Thus in this plot females are circles and males are squares
+```
+In the above plot, we see that the males (squares) fall relatively consistently higher in the plot than the females (circles). We see that they seem to follow similar linear trends, just at different levels. Thus separating by sex would seem to be useful, and a parallel regression model looks to be appropriate for this case.
+
+###7.3.2
+Obtain the appropriate test for a parallel regression model.
+```{r}
+fitpar <- lm(HT18~HT9+Sex, data=BGSall)
+summary(fitpar)
+
+#For below we fit the interaction term to see if it is significant or not
+#This will help us determine if parallel regression is appropriate
+fitalt <- lm(HT18~HT9+Sex+HT9:Sex, data=BGSall)
+summary(fitalt)
+```
+The appropriate test involves fitting a model of HT18 on HT9 and Sex, BUT not including any interaction terms. That allows us to look at in terms of parallel regression. We can see that is true because the higher order interaction term is not significant from the second model (fitalt), and thus we do not wish to include it in the model. Additionally, Sex is only significant in the model for which the interaction term is removed.
+
+###7.3.3
+Estimate a 95% confidence interval for the difference between males and females.
+
+We know from the above output that the difference in the intercepts is our variable of interest for the difference between sexes. This was also stated in the problem statement in the textbook, and we know that the coefficient for the variable Sex will display this difference since it is an indicator variable. But since we are using R, we will simply use the confint function to compute that interval.
+```{r}
+confint(fitpar)
+```
+The 95% confidence interval for the coefficient of Sex is therefore approximately [-12.86, -10.53]. It is important to note that Sex=1 for females, and that is what this value is what would apply to the female intercept, while the intercept would stay the same for males. All of the other coefficients also have their confidence intervals displayed above as well.
+
+## Number 7.4:
+This problem is based on number 5.15 in the textbook. Explain the meaning of each of these models.
+
+###a
+This model allows for HT2 and HT9, and the intercept, to be the same for both sexes. The addition of the Sex term in the model allows us to capture the differences in heights between the two sexes.
+
+###b
+This model specifically has terms that would vary explicitly based on the value for sex. Thus there are terms that are dependent on Sex for this, but they vary separately.
+
+###c
+This model contains all of the interaction terms for the predictors. It thus allows HT2 and HT9 to vary jointly by level of Sex. Therefore the total effect for the predictors would depend on both of the other values in the model.
+
+## Number 7.5:
+This problem is based on number 5.17 in the textbook.
+```{r}
+data(salary)
+#View(salary)
+```
+
+###7.5.1
+Get appropriate graphical summaries for the data.
+```{r, message=FALSE, warning=FALSE}
+par(mfrow=c(1, 3))
+boxplot(salary~sex, salary)
+boxplot(salary~rank, salary)
+boxplot(salary~degree, salary)
+```
+From the above boxplots, we can see that female salaries tend to be lower than males, and the max female salary is still less than the third quartile for male salaries. Then for ranks, we see that each incremental increase in "level" for rank introduces higher salaries for the most part. There is some overlap, which we have discussed as probably due to years of experience. In terms of degree, we see that Masters degrees have a much wider range of salary, although the median is very similar to PhD. 
+
+```{r}
+library(lattice)
+xyplot(salary~year|sex, data=salary, type=c("p", "g", "r"))
+```
+This plot shows us that females tend to have less years of experience (in current rank). Males follow the linear trend in salary increases by year relatively well.
+
+```{r}
+xyplot(salary~ysdeg|sex, data=salary, type=c("p", "g", "r"))
+```
+This plot shows us that females have a smaller slope for their salary based on years since degree. This means that females generally have lower salaries for their years since degree as compared to males. Females have more variability though, and both follow the linear model fairly well.
+
+###7.5.2
+Test the hypothesis that the mean salary for men and women is the same.
+```{r}
+fit2 <- lm(salary~sex, data=salary)
+summary(fit2)
+```
+The output shows us that the pvalue for the one sided t-test (since we want to know if it is less than), is equal to the two sided pvalue divided by 2. Thus the one sided pvalue here is equal to approximately 0.035, which means it is significant at the alpha = 0.05 level. From this we also know that the mean female salary is approximately $3340 less than male mean salary.
+
+###What alternative hypothesis do you think is appropriate?
+The alternative hypothesis should be that the mean salary for females is less than that of males. Since this data is trying to be used in a legal case, they are trying to prove that there is a disparity and salary gap between sexes. Thus we would want evidence for this.
+
+###7.5.3
+Assuming no interactions, obtain a 95% confidence interval for the difference in salary by sex.
+```{r}
+fit3 <- lm(salary ~ degree+sex+ysdeg+rank+year, data=salary)
+summary(fit3)
+```
+Now we want to use the above coefficient and standard error to find the confidence interval.
+```{r}
+#Use a t statistic for the confidence interval
+Bsex <- 1166.37
+stdsex <- 925.57
+upper <- Bsex + (qt(0.975, 45)*stdsex)
+lower <- Bsex - (qt(0.975, 45)*stdsex)
+lower; upper
+```
+Thus we see that the confidence interval for the difference in salary is approximately [-698, 3031]. The difference is saying that females have a higher salary than males, but the coefficient is not significant and has a relatively large pvalue.
+
+###7.5.4
+Exclude rank, refit, and summarize.
+```{r}
+fit4 <- lm(salary ~ degree+sex+ysdeg+year, data=salary)
+summary(fit4)
+```
+Now we see that the coefficient for the difference in mean salary between sexes is negative. The value is still not significant though, so we must note that. If we were to interpret this value while acknowledging it is not significant, then we would say that females mean salary is approximately $1286 less than males mean salary. It is also interesting to note that the other variables have also seen some change in significance.

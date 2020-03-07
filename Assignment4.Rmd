@@ -1,0 +1,220 @@
+---
+title: "Stat 5302 - Assignment 4"
+author: "Bailey Perry"
+date: "October 5, 2017"
+output: pdf_document
+---
+## Number 4.1:
+This problem is based on the brains dataset.
+
+###4.1.1 
+```{r, message=FALSE, warning=FALSE}
+#Draw the described plot
+library(alr4)
+data(brains)
+#View(brains)
+
+#OLS plot
+scatterplot(BrainWt~BodyWt, data=log(brains), reg.line=FALSE, by.groups=TRUE, smoother=FALSE)
+ols <- lm(log(brains)$BrainWt~log(brains$BodyWt))
+abline(ols, lty=3, col="red", lwd=4) #dashed ols line
+
+summary(ols)
+#Use the summary to determine the intercept and slope
+#Save these as variables for future use
+beta0 <- 2.13479
+beta1 <- 0.75169
+b0se <- 0.09604
+b1se <- 0.02846
+```
+
+###Obtain a 95% prediction interval for the BrainWt of a species with BodyWt=500 kilograms.
+```{r}
+#First we get the expected value at that point
+estbr500 <- (beta1*log(500))+beta0 
+estbr500
+
+#Next we need to get the value for the estimate of sigmasquared
+SYY <- sum((log(brains$BrainWt)-mean(log(brains$BrainWt)))^2)
+SXX <- sum((log(brains$BodyWt)-mean(log(brains$BodyWt)))^2)
+beta1
+RSS <- SYY-(beta1^2)*SXX
+df <- 60
+sigmahat2 <- RSS/df
+
+#Then we get the se(pred)
+xbar <- mean(log(brains$BodyWt))
+sepred <- sqrt(sigmahat2)*((1+(1/62)+(((log(500)-xbar)^2)/SXX))^0.5)
+sepred
+```
+E[BrainWt|BodyWt=500] = 6.806249
+
+Thus a 95% confidence interval would be:
+```{r}
+#Using a t-value for the 95% confidence level we have:
+upper <- estbr500 + qt(0.975,df=60)*sepred
+lower <- estbr500 - qt(0.975,df=60)*sepred
+lower; upper
+```
+Thus the 95% confidence interval for the BrainWt point estimate is [5.379, 8.233] given BodyWt=500, for the data log(brains).
+
+###4.1.2 
+###Describe the difference between the interval above, and a confidence interval for E[BrainWt | BodyWt=500]? No calculation is required.
+The interval above was for a specific point estimate, the process for which is detailed in our textbook. This was to investigate the expected (singular) value of BrainWt given a species with the BodyWt=500 kg. The other interval calculates what to expect for BrainWt when given all of the species that weigh 500 kg. 
+
+## Number 4.3:
+
+###4.3.1 (Number 2.20 in textbook)
+```{r}
+data(oldfaith)
+slrof <- lm(oldfaith$Interval~oldfaith$Duration)
+summary(slrof)
+```
+From this output, we see that the estimates for b1=0.176863 and b0=33.987808. In terms of a linear equation, that is: Interval = 33.988 + 0.177(Duration). This means that the timing between eruptions has a positive linear relationship with duration. If the duration of the eruption increases, the longer wait time there is and thus interval increases.
+
+```{r}
+#Eruption lasted 250 seconds; Give a 95% confidence interval for
+# the time that individual will have to wait for the next one.
+
+beta1of <- 0.176863
+beta0of <- 33.987808
+
+#Set duration equal to 250, then get the critical value and 
+# standard error to make the interval
+int250 <- beta0of + (beta1of*250)
+int250
+
+#Next we need to get the value for the estimate of sigmasquared
+SYY1 <- sum((oldfaith$Interval-mean(oldfaith$Interval))^2)
+SXX1 <- sum((oldfaith$Duration-mean(oldfaith$Duration))^2)
+beta1of
+RSS1 <- SYY1-((beta1of^2)*SXX1)
+df1 <- 268
+sigmahat2of <- RSS1/df1
+
+#Then we get the se(pred)
+xbar1 <- mean(oldfaith$Duration)
+#do not add one, see the sefit formula in book
+sepred1 <- sqrt(sigmahat2of)*((1+(1/268)+((250-xbar1)^2)/SXX1)^0.5)
+sepred1
+```
+```{r}
+#Using a t-value for the 95% confidence level we have:
+upper1 <- int250 + qt(0.975,df=268)*sepred1
+lower1 <- int250 - qt(0.975,df=268)*sepred1
+lower1; upper1
+```
+Thus the 95% confidence interval for the interval point estimate is [66.354, 90.053] given Duration=250, for the data oldfaith.
+
+```{r,message=FALSE, warning=FALSE}
+#Estimate the 0.90 quantile of the conditional distribution 
+# (interval|duration=250), assuming the population is normal.
+library(quantreg)
+quant90 <- rq(Interval ~ Duration==250, tau=.90, data=oldfaith)
+quant90
+```
+```{r}
+#Another way to get this value is using the normal test statistic
+# for a 0.90 quantile as follows:
+quant.9 <- int250 + qnorm(0.9)*sepred1
+quant.9
+```
+Thus we see that the 0.9 quantile, or the 90th percentile, of wait time (given duration=250), is approximately 86 minutes.
+
+###4.3.2
+Give an interpretation for the estimated slope in the context of this problem.
+
+In this case, we see that the estimated slope beta1 = 0.1768. In the context of this problem, we see that it means for every unit increase (one second) in duration, there is an estimated 0.1768 minute (time unit) increase on the interval. The interval is also known as the time spent waiting for the next eruption.
+
+###4.3.3
+Obtain a 95% confidence interval for E[interval|duration=250] + E[interval|duration=125].
+```{r}
+#Use estimated value for expected when d=250 from above
+int250
+#Calculate the estimated value for when d=125
+int125 <- beta0of + (beta1of*125)
+int125
+#Then we add those together
+totalint <- int250+int125
+
+#We can use the calculated sigma hat estimate from above
+sigmahat2of #this is sigma squared estimate
+
+#Now we need to calculate the new standard error for this
+# We use 375 as the x since we are summing 250+125
+innervar <- sigmahat2of*((1/268)+((375-mean(xbar1))^2)/SXX1)
+innervar
+
+#Now we need the actual variance of the prediction
+var375 <- (4*innervar)+(2*sigmahat2of)
+var375
+#Now to get the standard error for the confidence interval
+# take the square root of that
+sefit <- sqrt(var375)
+sefit
+
+#Using a t-value for the 95% confidence level we have:
+## THIS IS BASED ON THE PAGE 34 INSTRUCTIONS ##
+upper1 <- totalint + sqrt(2*qf(0.975, 2, 268))*sefit
+lower1 <- totalint - sqrt(2*qf(0.975, 2, 268))*sefit
+lower1; upper1
+```
+The 95% confidence interval for the sum of the expectations of Duration=250 and Duration=125,  is approximately [110.496, 158.103].
+
+###4.3.4
+Compute the estimated correlation between duration and length. Does that correlation give a complete summary of the dependence between the variables or does it miss something? What is its relationship with R^2?
+```{r}
+#Assume problem meant to ask for correlation between duration
+#and interval since those are the only two variables in oldfaith
+estcor <- cor(oldfaith$Duration, oldfaith$Interval)
+estcor
+```
+The estimated correlation value is approximately 89.61%. From this, and by the definition of correlation, we know that it is a positive and strong linear correlation between the two variables. Thus, we know as one variable increases, the other does as well.
+
+The relationship between correlation and R^2 is that R^2 is exactly equal to r^2 (or the square of the correlation) in simple linear regression. From this we see that, R^2 = 0.80294, and thus 80.3% of the variation is explained. Therefore the dependence is not completely summarized by their correlation or R^2 value.
+
+###4.3.5
+Compute an R^2 value for comparing the model: interval = alpha + 0.25(duration) + error, to the simple linear regression of interval on duration.
+```{r}
+#We can use the RSS of the SLR model from above for the big model
+RSSbm <- RSS1
+RSSbm
+  
+#SYY and SXX stay the same, but here we know that beta1 changes
+# to 0.25 for the small model
+SYY1
+SXX1
+#thus the RSS for the small model is:
+RSSsm <- SYY1 - (SXX1*(0.25^2))
+RSSsm <- -RSSsm
+#I had to hard code a correction to make the RSS positive
+#I believe there was an error in the RSS, because a 
+# sum of squares should always be positive
+#This was necessary to obtain a correct R^2 value
+
+#Then do (RSSsm-RSSbm)/RSSsm as described in lecture
+newR2 <- (RSSsm-RSSbm)/RSSsm
+newR2
+```
+Thus our estimate for the R^2 value is 0.6739149.
+
+###4.3.6
+Is there evidence in the data that leads you to question the adequacy of using this approach as we have done?
+
+Since the data explains approximately 80% of the variation, some may say that it is an adequate approach. It mostly depends on the validity desired from the model. But, we know that we can convert this to be considered in terms of the percent of standard deviation explained. To do this, we take 1-sqrt(1-R^2), which for the case of 80%, results in 55% of the standard deviation explained. This is now put into more understandable units, and it is concerning that a low percent is explained. Thus, the methodology used may not be adequate.
+
+
+```{r}
+plot(oldfaith)
+```
+
+
+Additionally, when looking at the plot, we see that the data seems to form into two separate clusters. It also is exhibiting possible signs of non-constant variance. Both of these things would be something that should be considered if a new model was to be used. It may make sense to consider the data in separate groups.
+
+
+## Number 4.4:
+In the simple linear regression model, show that the estimated intercept is an unbiased estimator of Beta0. You may rely on the fact that the slope is an unbiased estimator of Beta1. 
+
+Handwritten Solution. See attached loose leaf paper.
+
+

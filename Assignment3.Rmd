@@ -1,0 +1,152 @@
+---
+title: "Stat 5302 - Assignment 3"
+author: "Bailey Perry"
+date: "September 28, 2017"
+output: pdf_document
+---
+
+## Number 2.4 (textbook):
+This problem is based on the UBSprices dataset.
+
+
+###2.4.1 
+```{r, message=FALSE, warning=FALSE}
+#Draw the described plot
+library(alr4)
+data(UBSprices)
+#View(UBSprices)
+
+#OLS plot
+scatterplot(bigmac2009~bigmac2003, data=UBSprices, reg.line=FALSE, by.groups=TRUE, smoother=FALSE)
+ols <- lm(UBSprices$bigmac2009~UBSprices$bigmac2003)
+abline(ols, lty=3, col="red", lwd=4) #dashed ols line
+abline(0,1) #y=x line
+```
+The most unusual case in this plot is first the lone point that is greater than 150 for both 2003 and 2009. It clearly stands out as an outlier in the dataset, but that is just from visuals, and could be confirmed using R.
+
+##2.4.2
+Give two reasons why simple linear regression is not likely appropriate.
+
+1. The variance is not constant, we can see that the values make a fan shape spread across the plot which is an indicator that transformation needs to occur.
+2. The data is focused in the lower left corner, and the regression line is being pulled by the lone outlier to the upper right of the graph. This completely changes the line, which makes it a less effective model for the data. It currently is skewed.
+
+
+##2.4.3
+```{r}
+plot(log(UBSprices$bigmac2003), log(UBSprices$bigmac2009))
+```
+Explain why this graph is more sensibly summarized with linear regression.
+
+The graph clearly displays a much more linear pattern, as well as the variance has now become more constant. The points would likely cluster more consistently around the calculated regression line, and thus it looks to be a good match for the log data. Additionally, the log function is well-known to assist with reducing issues with variance.
+
+
+##Problem 3.2 (continuation of 2.4 - written):
+###3.2.1
+```{r}
+fit1 <- lm(log(UBSprices$bigmac2009)~log(UBSprices$bigmac2003))
+fit1
+# intercept = 0.6403 and beta1 = 0.8029
+
+plot(log(UBSprices$bigmac2003), log(UBSprices$bigmac2009))
+abline(lm(bigmac2009~bigmac2003, data=log(UBSprices)))
+```
+
+###3.2.2
+```{r}
+#Give the standard errors of the above parameters
+summary(fit1)
+#From this we can pull the standard errors
+```
+We see that the following is true for the model:
+
+Standard Error of Beta1 = 0.06709
+
+Standard Error of Beta0 (intercept) = 0.22922
+
+These standard errors are indicating how precise an estimate of the population parameter the sample statistic is. Thus it is a measure of variability of predictions in a regression analysis. It also allows for a confidence interval to be constructed for the sample statistics.
+
+###3.2.3
+Give separate 95% confidence intervals for the parameters (plus interpretation).
+
+We need to use 2.0066, since the data does not follow a completely normal distribution. Thus...
+
+For beta0: 0.64031 +/- 2.0066(0.22922) = (0.1804, 1.1003)
+
+For beta1: 0.80293 +/- 2.0066(0.06709) = (0.6683, 0.9376)
+
+The above values can be interpretated as the following -- The population intercept of UBSprices data falls within the interval (0.1804, 1.1003) 95% of the time. That is the definition of confidence interval evaluation.
+
+The population slope falls within the interval (0.6683, 0.9376) 95% of the time.
+
+###3.2.4 
+part a) Test separately the hypotheses that intercept=0 and slope=1.
+
+The test statistics for this test is T = beta1-1/se(beta1). Thus we see that t = (0.80293-1)/0.06709 = -2.9374. We also know the degrees of freedom = 52. Therefore, using a t distribution, p-value table -- 
+
+The P-Value is .004928.
+
+The result is significant at p < .05.
+
+~~~
+
+The test statistics for this test is T = beta0-0/se(beta0). Thus we see that t = (0.64031-0)/0.22922 = 2.8052. We also know the degrees of freedom = 52. Therefore, using a t distribution, p-value table -- 
+
+The P-Value is .007057.
+
+The result is significant at p < .05.
+
+part b) Explain the meaning of your estimate of sigma as defined by equation 2.1 in the text.
+
+As defined by the equation 2.1, the estimate of sigma is equivalent to the sqaure root of the conditional Var(Y|X=x). It is estimating, for given values X=x, the variance of Y.
+
+###3.2.5
+Compute the estimated correlation of (Beta0, Beta1 | X) and explain what it means. In particular, describe the population to which this correlation applies.
+
+We know the necessary formula from our textbook, so we apply formula 2.12 to this problem to solve it.
+```{r}
+x <- log(UBSprices$bigmac2003) 
+cdenom <- sqrt((sum((x-mean(x))^2)/nrow(UBSprices))+mean(x)^2)
+estcor <- -mean(x)/cdenom
+estcor
+```
+This is the correlation between the estimates of the intercept and the slope from our regression equation. This specifically applies to the sample data of UBSprices. This values measures where the y intercept starts along the regression line, and how that changes with the slope and the sample data. For this specifc dataset, the correlation is close to -1, and thus the variation in the predictor reflected in SXX is small relative to xbar. 
+
+##Number 2.8 (textbook):
+###2.8.1
+How do we interpret alpha?
+
+We can interpret alpha as a new beta0, based on the conditional mean. The error changes it slightly, but the two together become the new intercept for this function.
+
+If you take x=0, then y=intercept, and the same is true in this case. If you take xi=xbar, then yi=alpha+error, but error is minimal and thus it is considered the intercept.
+
+Then we see that: y=B0 + B1x and E[y|x]=alpha + B1(x-xbar).
+
+###2.8.2 
+In order to show that the least square estimates values hold true, you start with writing out residual sum of squares. 
+
+The next step then is to take partial derivatives for alpha and beta1 and set both of those equal to zero. 
+
+Then, in order to minimize the RSS function for Least Squares Regression, we find the values that fulfill the function.
+
+Thus we find the least squares estimates hold true: alpha = ybar and B1 = SXY/SYY. All of this is mathematically written out below, after 2.8.3.
+
+##2.8.3
+Find expressions for the variances of the estimates and the covariance between them.
+
+From the textbook, we know that the estimate for the variance of (beta hat1 | x) = (sigma hat^2)/SXX. But we also know that the standard error is the square root of the desired value. Thus we have the following:
+```{r}
+varb1 <- 0.06709^2
+varb1
+```
+Following the same ideas as above, we have a derived formula for variance of (betahat0 | x) = (sigma hat^2)*[(1/n)+(xbar^2/SXX)]. Yet, again, the square of the standard error will also find that value for us.
+```{r}
+varb0 <- 0.22922^2
+varb0
+```
+
+Now we want to find the covariance for these estimates. The textbook denotes this formula as: Cov = -(sigmahat^2)*(xbar/SXX). Since we know that the variance of betahat1 is equivalent to part of this formula, we can use that to compute the covariance.
+```{r}
+x <- log(UBSprices$bigmac2003) 
+covb01 <- varb1*(-mean(x))
+covb01
+```

@@ -1,0 +1,104 @@
+---
+title: "Stat 5302 - Assignment 6"
+author: "Bailey Perry"
+date: "October 19, 2017"
+output: pdf_document
+---
+
+## Number 6.1:
+This problem is based on number 4.1 in the textbook.
+
+###6.1.1 
+This is problem 4.1 in the textbook. Dataset is BGSgirls.
+```{r, message=FALSE, warning=FALSE}
+#Draw the described plot
+library(alr4)
+data(BGSgirls)
+#View(BGSgirls)
+
+Wt2 <- BGSgirls$WT2
+Wt9 <- BGSgirls$WT9
+Wt18 <- BGSgirls$WT18 
+#Fit the regressors
+ave <- (Wt2+Wt9+Wt18)/3 #average weight
+lin <- Wt18-Wt2 #linear component in time
+quad <- Wt2-(2*Wt9)+Wt18 #quadratic component in time
+
+#Fit the model with these regressors
+fit <- lm(BMI18 ~ ave + lin + quad, data=BGSgirls)
+summary(fit)
+```
+Summary of Results: In this model, there is one significant predictor, lin, the linear component in time. The multiple Rsquared value for this model is approximately 0.78. None of the regressors were aliased for this model as compared to the results in one of the models in Table 4.1. This is true because the variables are all uniquely related to the weights over the years based on the formulas above to define those regressors.
+
+###6.1.2
+Discuss the interpretation of the coefficients of the regression of BMI on ave, lin, and quad. Is it more palatable than the interpretation of the coefficients in regression of BMI on Wt2, Wt9, and Wt18?
+
+Answer: This will include an interpretation for all coefficients, although only one is considered significant in this model. The coefficient for ave was approximately -0.068. This means that for every unit increase in average weight from age 2 to 18, there is a 0.068 unit decrease in BMI at age 18 (not significant). The coefficient for lin was approximately 0.337. This means that for every unit increase in the weight difference at age 18 than at age 2, there is a 0.337 increase in BMI at age 18 (significant). The coefficient for quad is approximately -0.027. This means that for every unit increase in the quadratic time component (formula above), there is a 0.027 decrease in BMI at age 18 (not significant). These coefficients are less palatable, in my opinion, than the regression on Wt2, Wt9, and Wt18 by themselves. This is true because those variables have a clear interpretation whereas the coefficients in this model are related to more complex formulae for the regressors. It is much easier to interpret direct comparisons of weight at different ages.
+
+###6.1.3
+Include the variance inflation factors in comparisons for problem 6.1.1 and comment on any notable differences. Include also a discussion of the meaning of the variance inflation factor.
+
+```{r}
+vif(fit)
+```
+The variance inflation factors are outputted above using the vif function in R. For the comparison of these numbers, we know that the square root of these values will tell us how much larger the standard error of the predictor is as compared to if it were uncorrelated with the other predictor variables. This therefore allows us to view the affect of multicollinearity.
+
+Thus, the standard error of ave is approximately 3.776 times as large as it would be if ave were uncorrelated with lin and quad. The standard error for lin is approximately 3.813 times as large as it would be if lin were uncorrelated with ave and quad. And then we notice that for quad, it is only 1.9 times larger than it would be if quad were uncorrelated with ave and lin. Therefore the variance for quad is much less likely to be due to collinearity with ave and lin.
+
+###6.1.4
+Let beta(lin) denote the estimated coefficient for lin. Evaluate var(beta(lin)) numerically by plugging in the appropriate numerical values for each of these terms and compare your estimate with the direct estimate from R.
+
+```{r}
+#var(betalin) = [sigmasquared/(SD^2*(n-1))]*(1/(1-Rsquared of xj|rest))
+#We can directly use functions in R to compute the sigma value and the VIF
+sigma <- sigmaHat(fit)
+viflin <- 14.537778 #from vifs output
+varlin <- ((sigma^2)/(var(lin)*69))*viflin
+varlin
+```
+
+```{r}
+#Compare directly to the output of R
+varlinR <- vcov(fit)
+varlinR
+#From the output we know that the variance is on the diagonal
+#Thus it is equal to 0.005573872 directly from R
+```
+As seen in both of the above outputs, the computed estimate is identical to the direct estimate from R. Another way to find the variance directly from R is squaring the standard error estimate, which produces the value 0.005574116, which is also extremely close to the computed estimate, and likely only off by rounding error. All of the above agrees with what we would believe to hold true.
+
+###6.1.5
+Compute the coefficient estimates for the regression of BMI on ave/SD(ave) and continue with the other regressors as well. Does this offer any interpretational advantages over the regression on ave, lin, and quad?
+
+```{r}
+sdb1 <- -0.06778*sqrt(var(ave))
+sdb2 <- 0.33704*sqrt(var(lin))
+sdb3 <- -0.027*sqrt(var(quad))
+sdb1; sdb2; sdb3
+```
+
+Answer: In this transformation, all that needs to be done to compare the coefficients in this manner is to multiply each Betaj by the respective SDj. This is done above. In terms of interpreting these values, there is an advantage. This is true because it puts the coefficients in a non-arbitrary scale. In this case, this shows how BMI18 changes based on a one standard deviation change in the corresponding regressor. For example, if there is a one standard deviation change in ave, there is an approximately -0.322 change in BMI18. We see that in this case, quad likely holds the most importance in this model due to the largest impact with a one SD change. 
+
+###6.1.6
+Compare the values of Rsquared and sigmahat from the regression of BMI on (ave, lin, quad) to those from BMI on (WT2, WT9, WT18). Was the result expected? Why?
+
+```{r}
+#Our ave, lin, quad model
+summary(fit)
+sigmaHat(fit)
+
+#Using the weights as regressors
+fit1 <- lm(BMI18 ~ WT2 + WT9 + WT18, data=BGSgirls)
+summary(fit1)
+sigmaHat(fit1)
+```
+The multiple Rsquared and the sigmahat squared value for both of the models are exactly the same. This should be expected because the models both use the exact same data, just in different forms. To explain further, the model using ave, quad, and lin uses the data from the three weights, it just manipulates it to allow for different coefficients and interpretation. BUT, this does not fundamentally change the data that is behind the model which is the three weights. Therefore for both statistics, the same amount of variation would be explained for both models, thus resulting in identical values.
+
+## Number 6.2:
+Problem 4.8 in the textbook. The word linear here means linear in x1.
+
+Answer: Done by hand on attached page.
+
+## Number 6.3:
+Problem 4.9 in the textbook.
+
+Answer: Done by hand on attached page.

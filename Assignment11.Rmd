@@ -1,0 +1,20 @@
+---
+title: "Stat 5302 - Assignment 11"
+author: "Bailey Perry"
+date: "December 13, 2017"
+output: pdf_document
+---
+```{r,message=FALSE, warning=FALSE}
+library(alr4)
+```
+
+## Number 11.4:
+Fit and report the logistic regression of Sex on the six predictors. Give an interpretation of the estimated coefficient for Ht18.
+```{r}
+#View(BGSall)
+data(BGSall)
+logim <- glm(Sex ~ HT2 + HT9 + HT18 + WT2 + WT9 + WT18,
+             family = binomial(link = "logit"), BGSall)
+summary(logim)
+```
+Interpretation of Ht18: Holding all else constant, if Ht18 increases by one unit, then the odds of success decreases by a factor of e^(-1.42114). This is true because the Beta for Ht18 is negative and equal to the exponent of e.

@@ -1,0 +1,173 @@
+---
+title: "Stat 5302 - Assignment 5"
+author: "Bailey Perry"
+date: "October 19, 2017"
+output: pdf_document
+---
+## Number 5.1:
+This problem is based on number 3.3 in the textbook.
+
+###5.1.1 
+This is problem 3.3.2 in the textbook. Dataset is BGSgirls.
+```{r, message=FALSE, warning=FALSE}
+#Draw the described plot
+library(alr4)
+data(BGSgirls)
+#View(BGSgirls)
+
+#Marginal plots
+plot(BGSgirls$WT9, BGSgirls$BMI18)
+abline(lm(BGSgirls$BMI18~BGSgirls$WT9))
+
+plot(BGSgirls$ST9, BGSgirls$BMI18)
+abline(lm(BGSgirls$BMI18~BGSgirls$ST9))
+
+plot(BGSgirls$WT9, BGSgirls$ST9)
+abline(lm(BGSgirls$ST9~BGSgirls$WT9))
+  
+#Added variable plot
+BMIwt <- lm(BGSgirls$BMI18~BGSgirls$WT9)
+STwt <- lm(BGSgirls$ST9~BGSgirls$WT9)
+y <- resid(BMIwt)
+x <- resid(STwt)
+plot(y~x)
+abline(lm(y~x))
+
+summary(lm(y~x))
+```
+Summary of Results: From the above analysis including the plots and summary output, we see that the slope of the added variable plot is approximately -0.05. It is important to note that it may be small, but it is considered statistically significant from zero at the alpha=0.05 level. With that in mind, the data still seems to display that there is minimal addition from ST9 in this case. In utilizing the R^2 value (as done on page 54 in the book), we see that adding ST9 explains 10.47% of the remaining variability in BMI18 after adjusting for WT9.
+
+###5.1.2
+Problem 3.3.3 in the textbook.
+```{r}
+#Fit the multiple linear regression model given in the problem
+fit <- lm(BMI18 ~ HT2 + WT2 + HT9 + WT9 + ST9, data=BGSgirls)
+summary(fit)
+sigma2 <- (sum(resid(fit)^2))/(64)
+sigma1 <- sqrt(sigma2)
+sigma1
+#sigmaHat(fit) also gives us the same output
+#This function will be used in future problems
+```
+The values for sigmahat and R^2 are as follows: sigmahat = 2.139798 (found with code above), and (multiple) R^2 = 0.4431 as given by the summary output above.
+
+```{r}
+#Compute the t statistics to test each Bj = 0, with two-sided alternatives
+#Explicitly state the hypotheses and conclusions
+#Use the summary output to help with these calculations
+
+#Intercept Test:
+t0 <- (30.855335-0)/8.781156
+p0 <- 2*pt(-abs(t0),df=64)
+
+##Test One:
+#Null: B1 = 0, Alternative: B1 not equal to 0
+t1 <- (-0.193997-0)/0.130819
+p1 <- 2*pt(-abs(t1),df=64)
+
+# Could use the t-values from the above summary, but had already done them
+# by hand so continued with this method
+
+##Test Two:
+#Null: B2 = 0, Alternative: B2 not equal to 0
+t2 <- (-0.317779-0)/0.278736
+p2 <- 2*pt(-abs(t2),df=64)
+
+##Test Three:
+#Null: B3 = 0, Alternative: B3 not equal to 0
+t3 <- (0.008057-0)/0.096344
+p3 <- 2*pt(-abs(t3),df=64)
+
+##Test Four:
+#Null: B4 = 0, Alternative: B4 not equal to 0
+t4 <- (0.419762-0)/0.075211
+p4 <- 2*pt(-abs(t4),df=64)
+
+##Test Five:
+#Null: B5 = 0, Alternative: B5 not equal to 0
+t5 <- (-0.044416-0)/0.022219
+p5 <- 2*pt(-abs(t5),df=64)
+
+p0; p1; p2; p3; p4; p5
+#All of these match or are very similar to the summary output above
+```
+The conclusions tied to each of these tests are as follows: There is not sufficient evidence to reject the null hypothesis for B1, B2, and B3. Thus we cannot determine whether or not they are different from 0. In terms of B0 and B4, they are clearly significant and thus we have evidence to reject the null and state that B0 and B4 are not equal to 0. Then finally, for B5, the p-value is less than 0.05, but it is very close to that significance cut off. Thus we allow it, and state that there is evidence to reject the null and presume difference from 0, but it is not as strong as that of B4.
+
+###5.1.3
+In reference to problem 3.3.3 in your text, give the first row of X.
+```{r}
+head(BGSgirls)
+```
+Thus we know, the first row of X is: (1, 87.7, 13.6, 133.4, 32.5, 74). This is done by following the order of the predictors in the linear model, and then taking their value from the above head row 67 (or row 1 for girls data).
+
+###5.1.4 
+In reference to problem 3.3.3 in your text:
+(a) construct a plot of the response versus the fitted values. Explain and demonstrate numerically its connection with R^2. 
+```{r}
+#Response v fitted
+rvf <- BGSgirls$BMI18~fitted(fit)
+plot(rvf)
+abline(lm(rvf))
+
+summary(lm(rvf))
+```
+The closer the points fall to the above line, the better the R^2 value will be because the residuals will be reduced. Additionally, as noted on page 67, the R^2 value can be shown to be the square of the correlation between the observed and fitted values. Thus to demonstrate this numerically, we have the following code below.
+
+```{r}
+corr <- cor(BGSgirls$BMI18, fitted(fit))
+corr^2
+```
+Thus, we can also see that this value is the same as the R^2 shown in the summary output above.
+
+(b) compute the fourth diagonal element of (XTX)^???1 by starting with the standard error of HT9.
+```{r}
+#From the above summary
+seHT9 <- 0.096344
+sigma2 #sigmahat squared from above computations
+xtx <- (seHT9^2)/sigma2
+xtx
+```
+Thus the fourth diagonal element for the matrix (X'X)^-1 is approximately equal to 0.002.
+
+###5.1.5 
+In reference to problem 3.3.3 in your text, assume that e is normally distributed so RSS/(sigma)2 has a chi-squared distribution, give a 95% confidence interval for (sigma)2.
+
+```{r}
+#We know that RSS/sigmasquared follows a chi squared distribution
+# Thus we find a confidence interval for this knowing it is chi-squared
+# with df=64
+#We also know that RSS is approximately sigmahatsquared*(df)
+
+#FIRST find the upper and lower for the RSS/sigma^2
+RSS <- sum(resid(fit)^2)
+upper <- (RSS/sigma2) + qchisq(0.975, 64)*sqrt(2*64)
+#we use sqrt(2*64) because the variance of a chi-squared model is 2(df)
+lower <- (RSS/sigma2) - qchisq(0.975, 64)*sqrt(2*64)
+
+#BUT we want it to be for sigmasquared, to do this we can do the following:
+# correct it by taking RSS/lower and RSS/upper to obtain sigma squared in
+# the middle of the interval
+sigupper <- RSS/upper
+siglower <- RSS/lower
+
+sigupper; siglower
+```
+The above output is what we find for the confidence interval, BUT we know that sigma-squared cannot be negative. Thus we set the lower bound to 0, and the desired 95% confidence interval is [0, 0.2765427].
+
+##5.2 
+This problem is based on number 3.4 in the textbook.
+
+###3.4.1
+The added variable plot would be a vertical line placed at the point x=0 on the y-axis. This is true because since x2 is a linear combination of x1, it does not add any new information to the plot, and is considered redundant. 
+
+###3.4.2
+The added variable plot would be a horizontal line placed at the point y=0 on the x-axis. This is true because x1 explains all of the variation in the model (since there is no error), and thus x2 does not add more information. However, since x1 and x2 are not perfectly correlated, there is variation between the two predictors, which leads to the horizontal line.
+
+###3.4.3
+The conditions necessary for the added variable plot of x2 after x1 to be the same shape (exactly) as the added variable plot for Y versus x2 would be that x2 must explain all of the remaining variation after "the rest". Thus in this case, x2 must explain everything after x1. This occurs when x2 is uncorrelated with both x1 and Y.
+
+###3.4.4
+True. This is because the vertical variable is the residuals from the regression of Y on x1. Thus when we introduce x2, the vertical variation does not increase, because the variable will either add information to the model, or it won't. Thus the varation is capped at the vertical variation of Y on x1.
+
+##5.3 
+Starting with equation (3.12) in your text, derive equation (3.15). Done by hand on attached paper.
