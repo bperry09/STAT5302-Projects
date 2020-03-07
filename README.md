@@ -7,4 +7,4 @@
 
 # STAT5302 Projects
 
-Coursework for STAT 5302 (Applied Regression Analysis) at the University of Minnesota. Course details can be found at: http://classinfo.umn.edu/?subject=STAT&catalog_nbr=5302&term=1189. Taught with RMarkdown & Arc software. Course Syllabus details: http://users.stat.umn.edu/~rdcook/5302S11/syllabus.html.
+Coursework for STAT 5302 (Applied Regression Analysis) at the University of Minnesota. Course details can be found at: http://classinfo.umn.edu/?subject=STAT&catalog_nbr=5302&term=1189. Taught with RMarkdown & Arc software. Course Syllabus details: http://users.stat.umn.edu/~rdcook/5302S11/syllabus.html. Course taken in Fall 2017 semester.
